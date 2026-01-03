@@ -2,7 +2,8 @@ import 'dart:math' as math;
 
 import 'package:beat_check/core/theme/beat_check_theme.dart';
 import 'package:beat_check/features/tap_tempo/presentation/providers/tap_tempo_provider.dart';
-import 'package:beat_check/features/tap_tempo/presentation/providers/tap_tempo_state.dart';
+import 'package:beat_check/features/tap_tempo/domain/entities/tap_tempo_result.dart';
+import 'package:beat_check/features/tap_tempo/domain/entities/tap_tempo_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -70,7 +71,7 @@ class _TapTempoScreenState extends State<TapTempoScreen>
   void _handleTap() {
     final provider = context.read<TapTempoProvider>();
     provider.recordTap();
-    if (provider.screenState != TapTempoScreenState.ignoredInput) {
+    if (provider.result.state != TapTempoState.ignored) {
       HapticFeedback.lightImpact();
     }
     _pulseController.forward(from: 0);
@@ -95,7 +96,7 @@ class _TapTempoScreenState extends State<TapTempoScreen>
                     builder: (context, provider, _) {
                       return _buildContent(
                         context,
-                        provider,
+                        provider.result,
                         outlineColor,
                         _scaleAnimation,
                       );
@@ -113,41 +114,41 @@ class _TapTempoScreenState extends State<TapTempoScreen>
 
   Widget _buildContent(
     BuildContext context,
-    TapTempoProvider provider,
+    TapTempoResult result,
     Color outlineColor,
     Animation<double> scaleAnimation,
   ) {
     final layout = _LayoutMetrics.from(context);
 
-    switch (provider.screenState) {
-      case TapTempoScreenState.idle:
+    switch (result.state) {
+      case TapTempoState.idle:
         return _IdleContent(
           layout: layout,
           outlineColor: outlineColor,
           scaleAnimation: scaleAnimation,
         );
-      case TapTempoScreenState.collecting:
+      case TapTempoState.collecting:
         return _CollectingContent(
           layout: layout,
           outlineColor: outlineColor,
           scaleAnimation: scaleAnimation,
-          tapCount: provider.tapCount,
+          tapCount: result.tapCount,
         );
-      case TapTempoScreenState.stable:
+      case TapTempoState.stable:
         return _StableContent(
           layout: layout,
           outlineColor: outlineColor,
           scaleAnimation: scaleAnimation,
-          bpm: provider.bpm!,
-          tapCount: provider.tapCount,
+          bpm: result.bpm!,
+          tapCount: result.tapCount,
         );
-      case TapTempoScreenState.ignoredInput:
+      case TapTempoState.ignored:
         return _IgnoredInputContent(
           layout: layout,
           outlineColor: outlineColor,
           scaleAnimation: scaleAnimation,
-          bpm: provider.bpm,
-          tapCount: provider.tapCount,
+          bpm: result.bpm,
+          tapCount: result.tapCount,
         );
     }
   }
