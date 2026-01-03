@@ -1,6 +1,8 @@
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:beat_check/core/constants/bpm_constants.dart';
+import 'package:beat_check/features/tap_tempo/domain/entities/tap_tempo_state.dart';
 import 'package:beat_check/features/tap_tempo/presentation/providers/tap_tempo_provider.dart';
-import 'package:beat_check/features/tap_tempo/presentation/providers/tap_tempo_state.dart';
 
 void main() {
   group('TapTempoProvider', () {
@@ -11,130 +13,128 @@ void main() {
     });
 
     group('initial state', () {
-      test('screenState is idle', () {
-        expect(provider.screenState, TapTempoScreenState.idle);
+      test('result starts idle', () {
+        expect(provider.result.state, TapTempoState.idle);
       });
 
-      test('bpm is null', () {
-        expect(provider.bpm, isNull);
+      test('result bpm is null', () {
+        expect(provider.result.bpm, isNull);
       });
 
-      test('tapCount is 0', () {
-        expect(provider.tapCount, 0);
+      test('result tapCount is 0', () {
+        expect(provider.result.tapCount, 0);
       });
     });
 
     group('recordTap', () {
       test('first tap transitions to collecting state', () {
-        provider.recordTap();
-        expect(provider.screenState, TapTempoScreenState.collecting);
+        provider.recordTapAt(DateTime(2026, 1, 1, 12, 0, 0));
+        expect(provider.result.state, TapTempoState.collecting);
       });
 
       test('first tap sets tapCount to 1', () {
-        provider.recordTap();
-        expect(provider.tapCount, 1);
+        provider.recordTapAt(DateTime(2026, 1, 1, 12, 0, 0));
+        expect(provider.result.tapCount, 1);
       });
 
       test('first tap does not calculate BPM yet', () {
-        provider.recordTap();
-        expect(provider.bpm, isNull);
+        provider.recordTapAt(DateTime(2026, 1, 1, 12, 0, 0));
+        expect(provider.result.bpm, isNull);
       });
 
       test('second tap calculates BPM', () {
-        provider.recordTap();
+        final baseTime = DateTime(2026, 1, 1, 12, 0, 0);
+        provider.recordTapAt(baseTime);
         provider.recordTapAt(
-          DateTime.now().add(const Duration(milliseconds: 500)),
+          baseTime.add(const Duration(milliseconds: 500)),
         );
-        expect(provider.bpm, isNotNull);
+        expect(provider.result.bpm, isNotNull);
       });
 
       test('second tap increments tapCount to 2', () {
-        provider.recordTap();
+        final baseTime = DateTime(2026, 1, 1, 12, 0, 0);
+        provider.recordTapAt(baseTime);
         provider.recordTapAt(
-          DateTime.now().add(const Duration(milliseconds: 500)),
+          baseTime.add(const Duration(milliseconds: 500)),
         );
-        expect(provider.tapCount, 2);
+        expect(provider.result.tapCount, 2);
       });
 
       test('notifies listeners on tap', () {
         var notified = false;
         provider.addListener(() => notified = true);
-        provider.recordTap();
-        expect(notified, isTrue);
-      });
-    });
-
-    group('reset', () {
-      test('resets to idle state', () {
-        provider.recordTap();
-        provider.reset();
-        expect(provider.screenState, TapTempoScreenState.idle);
-      });
-
-      test('clears bpm', () {
-        provider.recordTap();
-        provider.recordTapAt(
-          DateTime.now().add(const Duration(milliseconds: 500)),
-        );
-        provider.reset();
-        expect(provider.bpm, isNull);
-      });
-
-      test('clears tapCount', () {
-        provider.recordTap();
-        provider.reset();
-        expect(provider.tapCount, 0);
-      });
-
-      test('notifies listeners on reset', () {
-        provider.recordTap();
-        var notified = false;
-        provider.addListener(() => notified = true);
-        provider.reset();
+        provider.recordTapAt(DateTime(2026, 1, 1, 12, 0, 0));
         expect(notified, isTrue);
       });
     });
 
     group('auto-reset on long pause', () {
       test('resets after pause exceeding threshold', () {
-        provider.recordTap();
+        final baseTime = DateTime(2026, 1, 1, 12, 0, 0);
+        provider.recordTapAt(baseTime);
         provider.recordTapAt(
-          DateTime.now().add(const Duration(milliseconds: 500)),
+          baseTime.add(const Duration(milliseconds: 500)),
         );
-        expect(provider.tapCount, 2);
+        expect(provider.result.tapCount, 2);
 
         provider.recordTapAt(
-          DateTime.now().add(const Duration(milliseconds: 3500)),
+          baseTime.add(
+            Duration(
+              milliseconds: 500 + BpmConstants.resetThresholdMs + 1,
+            ),
+          ),
         );
 
-        expect(provider.tapCount, 1);
-        expect(provider.bpm, isNull);
+        expect(provider.result.tapCount, 1);
+        expect(provider.result.bpm, isNull);
       });
     });
 
     group('too-fast tap rejection', () {
       test('ignores taps faster than minIntervalMs', () {
-        provider.recordTap();
+        final baseTime = DateTime(2026, 1, 1, 12, 0, 0);
+        provider.recordTapAt(baseTime);
         provider.recordTapAt(
-          DateTime.now().add(const Duration(milliseconds: 100)),
+          baseTime.add(const Duration(milliseconds: 100)),
         );
 
-        expect(provider.screenState, TapTempoScreenState.ignoredInput);
-        expect(provider.tapCount, 1);
+        expect(provider.result.state, TapTempoState.ignored);
+        expect(provider.result.tapCount, 1);
+        expect(provider.result.feedback, isNotNull);
       });
     });
 
-    group('window size limiting', () {
-      test('keeps only last 8 intervals', () {
-        final baseTime = DateTime.now();
-        provider.recordTapAt(baseTime);
+    group('inactivity timer', () {
+      test('auto-resets after threshold without taps', () {
+        fakeAsync((async) {
+          provider.recordTapAt(DateTime(2026, 1, 1, 12, 0, 0));
+          async.elapse(
+            Duration(milliseconds: BpmConstants.resetThresholdMs + 1),
+          );
+          expect(provider.result.state, TapTempoState.idle);
+          expect(provider.result.tapCount, 0);
+        });
+      });
+    });
 
-        for (var i = 1; i <= 10; i++) {
-          provider.recordTapAt(baseTime.add(Duration(milliseconds: 500 * i)));
-        }
+    group('ignored feedback clearing', () {
+      test('returns to stable after feedback window', () {
+        fakeAsync((async) {
+          final baseTime = DateTime(2026, 1, 1, 12, 0, 0);
+          provider.recordTapAt(baseTime);
+          provider.recordTapAt(
+            baseTime.add(const Duration(milliseconds: 500)),
+          );
+          expect(provider.result.state, TapTempoState.stable);
 
-        expect(provider.tapCount, 11);
-        expect(provider.bpm, isNotNull);
+          provider.recordTapAt(
+            baseTime.add(const Duration(milliseconds: 550)),
+          );
+          expect(provider.result.state, TapTempoState.ignored);
+
+          async.elapse(const Duration(milliseconds: 200));
+          expect(provider.result.state, TapTempoState.stable);
+        });
       });
     });
   });

@@ -8,9 +8,13 @@ void main() {
   group('TapTempoScreen', () {
     late TapTempoProvider provider;
 
-    setUp(() {
-      provider = TapTempoProvider();
-    });
+  setUp(() {
+    provider = TapTempoProvider();
+  });
+
+  tearDown(() {
+    provider.dispose();
+  });
 
     Widget createTestWidget() {
       return MaterialApp(
@@ -42,7 +46,8 @@ void main() {
       await tester.tap(find.byType(GestureDetector).first);
       await tester.pump();
 
-      expect(provider.tapCount, 1);
+      expect(provider.result.tapCount, 1);
+      provider.reset();
     });
 
     testWidgets('shows tap count after first tap', (tester) async {
@@ -52,6 +57,7 @@ void main() {
       await tester.pump();
 
       expect(find.textContaining('1'), findsWidgets);
+      provider.reset();
     });
 
     testWidgets('reset button clears state', (tester) async {
@@ -63,7 +69,7 @@ void main() {
       await tester.tap(find.byIcon(Icons.refresh));
       await tester.pump();
 
-      expect(provider.tapCount, 0);
+      expect(provider.result.tapCount, 0);
       expect(find.text('TAP\nTO START'), findsOneWidget);
     });
   });
