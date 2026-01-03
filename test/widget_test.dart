@@ -1,30 +1,50 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+import 'dart:math' as math;
 
+import 'package:beat_check/core/theme/beat_check_theme.dart';
+import 'package:beat_check/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:beat_check/main.dart';
-
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('App launches and shows tap to start', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const BeatCheckApp());
+    expect(find.text('TAP\nTO START'), findsOneWidget);
+  });
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  testWidgets('BPM block composite accounts for shadow width', (
+    WidgetTester tester,
+  ) async {
+    const screenSize = Size(400, 800);
+    tester.view.physicalSize = screenSize;
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    await tester.pumpWidget(const BeatCheckApp());
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    final usableWidth = screenSize.width - 48;
+    final blockWidth =
+        math.max(220.0, math.min(usableWidth, 360.0)).toDouble();
+    final blockHeight = math.max(160.0, blockWidth * 0.56).toDouble();
+    final expectedWidth = blockWidth + BeatCheckMetrics.shadowOffset.dx;
+    final expectedHeight = blockHeight + BeatCheckMetrics.shadowOffset.dy;
+
+    final compositeFinder = find.byWidgetPredicate(
+      (widget) =>
+          widget is SizedBox &&
+          widget.width != null &&
+          widget.height != null &&
+          (widget.width! - expectedWidth).abs() < 0.01 &&
+          (widget.height! - expectedHeight).abs() < 0.01,
+    );
+
+    expect(compositeFinder, findsOneWidget);
+
+    final compositeCenter = tester.getCenter(compositeFinder);
+    expect(compositeCenter.dx, closeTo(screenSize.width / 2, 0.01));
   });
 }
