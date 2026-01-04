@@ -1,4 +1,4 @@
-package com.example.beat_check
+package dev.rohjli.beatcheck
 
 import io.flutter.embedding.android.FlutterActivity
 
