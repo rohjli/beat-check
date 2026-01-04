@@ -105,7 +105,12 @@ class _TapTempoScreenState extends State<TapTempoScreen>
                 },
               ),
             ),
-            const Positioned(bottom: 24, right: 24, child: _ResetButton()),
+            const Positioned(
+              bottom: 24,
+              left: 24,
+              right: 24,
+              child: _ResetButton(),
+            ),
           ],
         ),
       ),
@@ -510,14 +515,15 @@ class _ResetButton extends StatelessWidget {
         context.read<TapTempoProvider>().reset();
       },
       child: SizedBox(
-        width: 56,
         height: 56,
         child: _BrutalistBlock(
           borderColor: BeatCheckColors.black,
           fillColor: BeatCheckColors.white,
           shadowColor: BeatCheckColors.acidGreen,
           shadowOffset: const Offset(6, 6),
-          child: const Icon(Icons.refresh, color: BeatCheckColors.black),
+          child: const Center(
+            child: Icon(Icons.refresh, color: BeatCheckColors.black),
+          ),
         ),
       ),
     );
