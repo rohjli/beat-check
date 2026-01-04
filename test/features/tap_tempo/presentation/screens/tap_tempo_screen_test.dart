@@ -27,7 +27,7 @@ void main() {
 
     testWidgets('shows "Tap to Start" in idle state', (tester) async {
       await tester.pumpWidget(createTestWidget());
-      expect(find.text('TAP\nTO START'), findsOneWidget);
+      expect(find.text('TAP'), findsOneWidget);
     });
 
     testWidgets('has full-screen tap area', (tester) async {
@@ -70,7 +70,7 @@ void main() {
       await tester.pump();
 
       expect(provider.result.tapCount, 0);
-      expect(find.text('TAP\nTO START'), findsOneWidget);
+      expect(find.text('TAP'), findsOneWidget);
     });
   });
 }

@@ -10,7 +10,7 @@ void main() {
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(const BeatCheckApp());
-    expect(find.text('TAP\nTO START'), findsOneWidget);
+    expect(find.text('TAP'), findsOneWidget);
   });
 
   testWidgets('BPM block composite accounts for shadow width', (

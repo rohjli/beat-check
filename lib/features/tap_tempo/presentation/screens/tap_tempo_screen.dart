@@ -222,7 +222,7 @@ class _IdleContent extends StatelessWidget {
             shadowColor: BeatCheckColors.acidGreen,
             child: Center(
               child: Text(
-                'TAP\nTO START',
+                'TAP',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.bungee(
                   fontSize: layout.bpmFontSize * 0.55,
